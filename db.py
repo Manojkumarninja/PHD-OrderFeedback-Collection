@@ -116,14 +116,15 @@ def save_feedback(
                 """INSERT INTO PHD_OrderFeedback_Ratings
                    (DeliveryDate, SaleOrderId, CustomerId, Customer,
                     SkuId, Sku, SkuRating, OverAllRating, Comments,
-                    ImageUrl1, ImageUrl2)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ImageUrl1, ImageUrl2, CreatedAt, UpdatedAt)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, NOW(), NOW())
                    ON DUPLICATE KEY UPDATE
                      SkuRating     = VALUES(SkuRating),
                      OverAllRating = VALUES(OverAllRating),
                      Comments      = VALUES(Comments),
                      ImageUrl1     = VALUES(ImageUrl1),
-                     ImageUrl2     = VALUES(ImageUrl2)""",
+                     ImageUrl2     = VALUES(ImageUrl2),
+                     UpdatedAt     = NOW()""",
                 (
                     order_date, sale_order, customer_id, customer,
                     sku_id, sku_name, rating, overall_rating,
