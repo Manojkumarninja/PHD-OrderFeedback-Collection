@@ -1,5 +1,6 @@
 .streamlit/secrets.toml
 customer_links.csv
+*.json
 __pycache__/
 *.pyc
 *.pyo
