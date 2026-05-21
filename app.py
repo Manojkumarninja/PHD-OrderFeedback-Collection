@@ -6,6 +6,7 @@ from db import (
     get_order_dates,
     get_skus_for_date,
     get_submitted_dates,
+    get_feedback_for_date,
     save_feedback,
 )
 
@@ -39,6 +40,27 @@ st.markdown("""
     padding: 1rem 1.2rem .4rem;
     margin-bottom: .8rem;
     box-shadow: 0 1px 4px rgba(0,0,0,.07);
+}
+
+.view-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin-bottom: .75rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+}
+.view-label  { color: #6b7280; font-size: .82rem; margin-bottom: .2rem; }
+.view-value  { font-size: 1.05rem; font-weight: 500; }
+.view-stars  { font-size: 1.2rem; }
+.submitted-badge {
+    display: inline-block;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: .82rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -79,6 +101,14 @@ STAR_LABELS = {
     5: "⭐⭐⭐⭐⭐  Excellent",
 }
 
+def stars_display(rating) -> str:
+    """Return star emoji string for a numeric rating."""
+    try:
+        n = int(round(float(rating)))
+        return "⭐" * n + f"  ({n}/5)"
+    except (TypeError, ValueError):
+        return "—"
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE ❶ — ORDER DATES
@@ -92,7 +122,7 @@ if st.session_state.page == "dates":
         st.stop()
 
     st.subheader("Your Order Dates")
-    st.caption("Tap a date to rate the products delivered that day.")
+    st.caption("Tap a date to provide feedback. Already submitted dates are view-only.")
 
     for d in order_dates:
         d_str = d.strftime("%d %b %Y") if hasattr(d, "strftime") else str(d)
@@ -101,19 +131,101 @@ if st.session_state.page == "dates":
 
         if st.button(label, key=f"btn_{d}", use_container_width=True):
             st.session_state.selected_date = d
-            st.session_state.page = "feedback"
+            # Route to read-only view if already submitted, else to the form
+            st.session_state.page = "view" if done else "feedback"
             st.rerun()
 
         if done:
-            st.caption("&nbsp;&nbsp;&nbsp; Tap to view or update feedback.", unsafe_allow_html=True)
+            st.caption("&nbsp;&nbsp;&nbsp; Feedback submitted — tap to view.", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE ❷ — FEEDBACK FORM
+# PAGE ❷ — READ-ONLY VIEW (submitted dates)
+# ══════════════════════════════════════════════════════════════════════════════
+elif st.session_state.page == "view":
+    sel_date = st.session_state.selected_date
+    d_str    = sel_date.strftime("%d %b %Y") if hasattr(sel_date, "strftime") else str(sel_date)
+
+    if st.button("← Back to dates"):
+        st.session_state.page = "dates"
+        st.rerun()
+
+    st.subheader(f"Your Feedback — {d_str}")
+
+    rows = get_feedback_for_date(customer_id, sel_date)
+    if not rows:
+        st.warning("No feedback found for this date.")
+        st.stop()
+
+    # Submitted timestamp (from first row)
+    submitted_at = rows[0].get("UpdatedAt") or rows[0].get("CreatedAt")
+    if submitted_at:
+        ts = submitted_at.strftime("%d %b %Y, %I:%M %p") if hasattr(submitted_at, "strftime") else str(submitted_at)
+        st.markdown(f'<span class="submitted-badge">✅ Submitted on {ts}</span>', unsafe_allow_html=True)
+
+    # Order summary
+    skus = get_skus_for_date(customer_id, sel_date)
+    with st.expander("📋 Order Summary", expanded=False):
+        df = pd.DataFrame(skus)[["Sku", "SaleKg"]].rename(
+            columns={"Sku": "Product", "SaleKg": "Qty (Kg)"}
+        )
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+    st.divider()
+
+    # Per-SKU ratings (read-only)
+    st.markdown("### ⭐ Product Ratings")
+    for row in rows:
+        if row["Sku"] == "OVERALL":
+            continue
+        st.markdown(
+            f'<div class="view-card">'
+            f'<div class="view-label">{row["Sku"]}</div>'
+            f'<div class="view-stars">{stars_display(row["SkuRating"])}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
+
+    # Overall rating (read-only) — take from any row since it's the same across all
+    overall = next((r["OverAllRating"] for r in rows if r["OverAllRating"] is not None), None)
+    st.markdown("### 🏆 Overall Rating")
+    st.markdown(
+        f'<div class="view-card"><div class="view-stars">{stars_display(overall)}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    st.divider()
+
+    # Comments (read-only)
+    comments = next((r["Comments"] for r in rows if r["Comments"]), None)
+    st.markdown("### 💬 Comments")
+    st.markdown(
+        f'<div class="view-card"><div class="view-value">{comments if comments else "<em style=\'color:#9ca3af\'>No comments provided.</em>"}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    # Photo (read-only)
+    image_url = next((r["ImageUrl1"] for r in rows if r.get("ImageUrl1")), None)
+    if image_url:
+        st.divider()
+        st.markdown("### 📷 Photo")
+        st.image(image_url, use_column_width=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE ❸ — FEEDBACK FORM (new submissions only)
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "feedback":
     sel_date = st.session_state.selected_date
     d_str    = sel_date.strftime("%d %b %Y") if hasattr(sel_date, "strftime") else str(sel_date)
+
+    # Safety guard: if someone navigates here for an already-submitted date, redirect to view
+    submitted_set = get_submitted_dates(customer_id)
+    if str(sel_date) in submitted_set:
+        st.session_state.page = "view"
+        st.rerun()
 
     if st.button("← Back to dates"):
         st.session_state.page = "dates"
@@ -134,7 +246,6 @@ elif st.session_state.page == "feedback":
 
     st.divider()
 
-    # ── Form ──────────────────────────────────────────────────────────────────
     with st.form("feedback_form", clear_on_submit=False):
 
         st.markdown("### ⭐ Rate Each Product")
@@ -201,7 +312,6 @@ elif st.session_state.page == "feedback":
             use_container_width=True,
         )
 
-    # ── On submit ─────────────────────────────────────────────────────────────
     if submitted:
         with st.spinner("Saving your feedback…"):
             try:
@@ -222,7 +332,7 @@ elif st.session_state.page == "feedback":
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE ❸ — SUCCESS
+# PAGE ❹ — SUCCESS
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "success":
     sel_date = st.session_state.selected_date

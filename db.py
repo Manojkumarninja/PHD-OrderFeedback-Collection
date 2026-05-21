@@ -66,6 +66,19 @@ def get_skus_for_date(customer_id: int, order_date):
         return cur.fetchall()
 
 
+def get_feedback_for_date(customer_id: int, order_date):
+    with _get_conn() as conn:
+        cur = conn.cursor(dictionary=True)
+        cur.execute(
+            """SELECT Sku, SkuId, SkuRating, OverAllRating, Comments,
+                      ImageUrl1, CreatedAt, UpdatedAt
+               FROM PHD_OrderFeedback_Ratings
+               WHERE CustomerId = %s AND DeliveryDate = %s""",
+            (customer_id, order_date),
+        )
+        return cur.fetchall()
+
+
 def get_submitted_dates(customer_id: int):
     with _get_conn() as conn:
         cur = conn.cursor()
