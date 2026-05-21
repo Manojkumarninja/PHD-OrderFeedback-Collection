@@ -1,10 +1,8 @@
-import base64
-import io
-
 import mysql.connector
 import streamlit as st
 from contextlib import contextmanager
-from PIL import Image
+
+from drive import upload_photo
 
 
 @contextmanager
@@ -90,31 +88,19 @@ def get_submitted_dates(customer_id: int):
         return {str(row[0]) for row in cur.fetchall()}
 
 
-def _encode_image(raw_file) -> str | None:
-    """Resize image and return as base64 data-URI string."""
-    try:
-        img = Image.open(raw_file).convert("RGB")
-        img.thumbnail((800, 800), Image.LANCZOS)
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=75)
-        b64 = base64.b64encode(buf.getvalue()).decode()
-        return f"data:image/jpeg;base64,{b64}"
-    except Exception:
-        return None
-
-
 def save_feedback(
     customer_id: int,
     order_date,
-    skus: list[dict],           # rows from get_skus_for_date
-    sku_ratings: dict,          # {sku_name: int 1-5}
+    skus: list[dict],
+    sku_ratings: dict,
     overall_rating: int,
     comments: str | None,
-    image1=None,                # raw file-like objects from Streamlit
+    image1=None,
     image2=None,
 ):
-    img_url1 = _encode_image(image1) if image1 else None
-    img_url2 = _encode_image(image2) if image2 else None
+    # Upload photos to Google Drive first (outside the DB transaction)
+    img_url1 = upload_photo(image1, customer_id, order_date) if image1 else None
+    img_url2 = upload_photo(image2, customer_id, order_date) if image2 else None
 
     with _get_conn() as conn:
         cur = conn.cursor()
@@ -144,5 +130,5 @@ def save_feedback(
                     comments or None, img_url1, img_url2,
                 ),
             )
-    # clear date caches so submitted badge updates immediately
+    # clear date cache so submitted badge updates immediately
     get_order_dates.clear()
