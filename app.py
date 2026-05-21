@@ -20,48 +20,103 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-[data-testid="stAppViewContainer"] { background: #f0f4f8; }
-[data-testid="stHeader"]           { background: transparent; }
+/* ── Base ───────────────────────────────────────────────────────── */
+[data-testid="stAppViewContainer"] {
+    background: #f5f7fa;
+}
+[data-testid="stHeader"]  { background: transparent; }
+[data-testid="stToolbar"] { display: none; }
 
+/* ── Buttons ────────────────────────────────────────────────────── */
+div.stButton > button {
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    color: #1f2937;
+    font-weight: 500;
+    transition: all .15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+div.stButton > button:hover {
+    border-color: #1d4ed8;
+    color: #1d4ed8;
+    box-shadow: 0 2px 8px rgba(29,78,216,.15);
+}
+
+/* ── Header card ────────────────────────────────────────────────── */
 .header-card {
-    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
     color: white;
     padding: 1.4rem 1.8rem;
     border-radius: 14px;
     margin-bottom: 1.5rem;
-    box-shadow: 0 4px 15px rgba(59,130,246,.3);
+    box-shadow: 0 4px 18px rgba(30,64,175,.25);
 }
-.header-card h2 { margin: 0 0 .25rem; font-size: 1.5rem; }
-.header-card p  { margin: 0; opacity: .85; font-size: .95rem; }
+.header-card h2 { margin: 0 0 .25rem; font-size: 1.45rem; font-weight: 700; }
+.header-card p  { margin: 0; opacity: .88; font-size: .95rem; }
 
+/* ── SKU block (feedback form) ──────────────────────────────────── */
 .sku-block {
-    background: white;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 1rem 1.2rem .4rem;
-    margin-bottom: .8rem;
-    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    padding: 0.85rem 1.1rem .35rem;
+    margin-bottom: .7rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
 
+/* ── View cards (read-only page) ────────────────────────────────── */
 .view-card {
-    background: white;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 1rem 1.2rem;
-    margin-bottom: .75rem;
-    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    padding: .9rem 1.1rem;
+    margin-bottom: .7rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
-.view-label  { color: #6b7280; font-size: .82rem; margin-bottom: .2rem; }
-.view-value  { font-size: 1.05rem; font-weight: 500; }
-.view-stars  { font-size: 1.2rem; }
+.view-label { color: #6b7280; font-size: .8rem; margin-bottom: .2rem; letter-spacing: .03em; text-transform: uppercase; }
+.view-value { font-size: 1rem; font-weight: 500; color: #111827; }
+.view-stars { font-size: 1.15rem; }
+
+/* ── Submitted badge ────────────────────────────────────────────── */
 .submitted-badge {
     display: inline-block;
-    background: #d1fae5;
+    background: #ecfdf5;
     color: #065f46;
+    border: 1px solid #6ee7b7;
     border-radius: 20px;
-    padding: 3px 12px;
+    padding: 4px 14px;
     font-size: .82rem;
     font-weight: 600;
     margin-bottom: 1rem;
 }
+
+/* ── Radio buttons look cleaner ─────────────────────────────────── */
+div[role="radiogroup"] label {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 6px 12px;
+    margin-right: 6px;
+    cursor: pointer;
+    transition: all .15s;
+}
+div[role="radiogroup"] label:has(input:checked) {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+/* ── Expander ───────────────────────────────────────────────────── */
+[data-testid="stExpander"] {
+    background: #ffffff;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px;
+}
+
+/* ── Divider colour ─────────────────────────────────────────────── */
+hr { border-color: #e2e8f0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
